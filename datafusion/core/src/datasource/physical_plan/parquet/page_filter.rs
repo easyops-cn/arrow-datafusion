@@ -210,16 +210,9 @@ impl PagePruningPredicate {
 
         let final_selection = combine_multi_col_selection(row_selections);
         let total_skip =
-            final_selection.iter().fold(
-                0,
-                |acc, x| {
-                    if x.skip {
-                        acc + x.row_count
-                    } else {
-                        acc
-                    }
-                },
-            );
+            final_selection
+                .iter()
+                .fold(0, |acc, x| if x.skip { acc + x.row_count } else { acc });
         file_metrics.page_index_rows_filtered.add(total_skip);
         Ok(Some(final_selection))
     }
@@ -279,7 +272,10 @@ fn find_column_index(
         .columns()
         .iter()
         .enumerate()
-        .find(|(_idx, c)| c.column_descr().name() == column.name())
+        .find(|(_idx, c)| {
+            c.column_descr().path().parts().len() == 1
+                && c.column_descr().name() == column.name()
+        })
         .map(|(idx, _c)| idx);
 
     if col_idx.is_none() {
